@@ -423,7 +423,7 @@ $('#cClose').addEventListener('click',()=>hide('#colSheet'));
 $('#main').addEventListener('click',e=>{
   if(Date.now()<ignoreUntil)return;
   const add=e.target.closest('[data-add]');
-  if(add){const si=+add.dataset.add;cfg.sections[si].items.push({id:uid(),label:'Neuer Button',icon:'power',type:'action',url:'',urlOff:''});openEditor(si,cfg.sections[si].items.length-1,true);return}
+  if(add){const si=+add.dataset.add;cfg.sections[si].items.push({id:uid(),label:'Neuer Button',icon:'power',type:'action',url:'',urlOff:'',colors:{},c:''});openEditor(si,cfg.sections[si].items.length-1,true);return}
   const t=e.target.closest('.tile[data-s]');if(!t)return;
   const si=+t.dataset.s, ii=+t.dataset.i;
   editing?openEditor(si,ii,false):press(t,cfg.sections[si].items[ii]);
@@ -437,7 +437,7 @@ const ACC=['','#fff4dc','#ff9a3c','#ff2d92','#ff4d6d','#7b5cff','#2f6bff','#00e0
 function renderAcc(){$('#fAcc').innerHTML=ACC.map(c=>`<button type="button" class="icbtn${c===ed.c?' sel':''}" data-acc="${c}" style="width:52px" aria-label="${c||'keine'}">${c?`<i style="width:24px;height:24px;border-radius:50%;background:${c}"></i>`:'–'}</button>`).join('')}
 function setType(t){ed.type=t;document.querySelectorAll('#fType .btn').forEach(b=>b.classList.toggle('sel',b.dataset.type===t));$('#rowOff').hidden=t==='action';$('#rowCol').hidden=t!=='color';$('#rowAcc').hidden=t!=='action';$('#lblUrl').textContent=t==='action'?'URL':'URL zum Einschalten'}
 function openEditor(si,ii,isNew){
-  const it=cfg.sections[si].items[ii];
+  const it=cfg.sections[si].items[ii];it.colors=it.colors||{};
   ed={si,ii,isNew,icon:it.icon,type:it.type,c:it.c,delArm:false};
   $('#fLabel').value=it.label;$('#fUrl').value=it.url;$('#fUrlOff').value=it.urlOff;
   $('#fColors').innerHTML=COLORS.map(c=>`<div class="curl" style="--c:${c.c}"><i title="${c.n}"></i><input data-ck="${c.k}" inputmode="url" placeholder="${c.n} – URL"></div>`).join('');
