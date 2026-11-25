@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<title>Smart Home Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#000;--panel:#0e0f11;--tile:rgba(20,21,25,.78);--line:#1f2126;--ink:#f2f3f5;--mute:#8a8f98;--acc:#8fd3ff;--lit:#f6f1e7;--warn:#ffb27a;color-scheme:dark}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:var(--bg);position:relative;isolation:isolate;color:var(--ink);font:16px/1.5 'Outfit',system-ui,sans-serif;overflow:hidden;user-select:none}
+#app{display:grid;grid-template-columns:minmax(320px,36%) minmax(0,1fr);height:100vh;height:100dvh}
+.side{display:flex;flex-direction:column;padding:clamp(28px,4vh,56px) clamp(24px,3vw,52px);border-right:1px solid var(--line)}
+.greet{font-size:20px;color:var(--mute)}
+.clock{font-size:clamp(84px,10.5vw,176px);font-weight:300;line-height:.95;letter-spacing:-.045em;font-variant-numeric:tabular-nums;margin:6px 0 4px}
+.date{font-size:22px}
+.wx{margin-top:auto;display:flex;align-items:center;gap:18px}
+.wx .big svg{width:72px;height:72px;stroke-width:1.4;display:block}
+.wx .t{font-size:52px;font-weight:300;line-height:1}
+.wx .d{color:var(--mute);font-size:15px}
+.fc{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.fc div{text-align:center;font-size:14px;color:var(--mute)}
+.fc svg{width:28px;height:28px;color:var(--ink);margin:6px auto;display:block}
+.fc b{color:var(--ink);font-weight:500}
+.foot{display:flex;gap:10px;margin-top:26px;flex-wrap:wrap}
+.btn{font:inherit;font-size:15px;color:var(--ink);background:var(--tile);border:1px solid var(--line);border-radius:999px;padding:10px 18px;min-height:44px;cursor:pointer}
+.btn.pri{background:var(--acc);color:#001018;border-color:transparent;font-weight:600}
+.btn.danger{color:var(--warn)}
+main{overflow-y:auto;padding:clamp(24px,4vh,48px) clamp(20px,3vw,48px)}
+section+section{margin-top:24px}
+h2{font-size:17px;font-weight:500;color:var(--mute);margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:12px}
+.tile{font:inherit;color:var(--ink);text-align:left;background:var(--tile);border:1px solid var(--line);border-radius:20px;padding:14px;min-height:104px;display:flex;flex-direction:column;cursor:pointer;transition:background .25s,color .25s,transform .12s,box-shadow .25s}
+.tile .ic svg{width:30px;height:30px;display:block}
+.tile .lb{margin-top:auto;font-size:17px;font-weight:500;line-height:1.2}
+.tile .st{font-size:13px;color:var(--mute);margin-top:2px}
+.tile.on{background:var(--lit);color:#141414;border-color:var(--lit);box-shadow:0 0 44px -10px rgba(246,241,231,.5)}
+.tile.on .st{color:#5a5a5a}
+.tile:active{transform:scale(.97)}
+.tile.fire{animation:fire .6s ease-out}
+@keyframes fire{0%{box-shadow:0 0 0 0 rgba(143,211,255,.7)}100%{box-shadow:0 0 0 14px rgba(143,211,255,0)}}
+.editing .tile{border-style:dashed;border-color:#3a3f48}
+.tile.missing .st{color:var(--warn)}
+.tile.add{color:var(--acc);background:transparent}
+.tile.mood{background:linear-gradient(150deg,color-mix(in srgb,var(--c) 34%,#121316) 0%,#111215 78%);border-color:color-mix(in srgb,var(--c) 28%,#1f2126)}
+.tile.mood .ic{color:var(--c)}
+.tile.mood.act{background:linear-gradient(150deg,color-mix(in srgb,var(--c) 70%,#121316) 0%,color-mix(in srgb,var(--c) 18%,#121316) 85%);border-color:var(--c);box-shadow:0 0 50px -14px var(--c)}
+.tile.mood.act .ic{color:#fff}
+.tile.mood.act .st{color:#fff}
+body::before{content:"";position:fixed;inset:-20%;pointer-events:none;z-index:-1;background:radial-gradient(40% 45% at 85% 10%,color-mix(in srgb,var(--mood,#3a4a66) 26%,transparent),transparent 70%),radial-gradient(35% 40% at 10% 100%,color-mix(in srgb,var(--mood,#3a4a66) 14%,transparent),transparent 70%);transition:background 1.2s}
+.side{background:rgba(0,0,0,.35);backdrop-filter:blur(2px)}
+.tile{backdrop-filter:blur(6px)}
+.tile.col.on{background:linear-gradient(155deg,var(--c) -30%,#121316 72%);color:var(--ink);border-color:var(--c);box-shadow:0 0 46px -12px var(--c)}
+.tile.col.on .st{color:#d6d8dc}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-right:6px;vertical-align:0}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;margin-top:16px}
+.swb{font:inherit;font-size:14px;color:var(--ink);background:#08090a;border:1px solid var(--line);border-radius:16px;padding:12px 8px;min-height:96px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px}
+.swb i{width:40px;height:40px;border-radius:50%;background:var(--c);box-shadow:0 0 22px -4px var(--c)}
+.swb.sel{border-color:var(--c)}
+.big2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+.big2 .btn{min-height:60px;font-size:17px;border-radius:16px}
+.curl{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center;margin-top:8px}
+.curl i{width:24px;height:24px;border-radius:50%;background:var(--c)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:#1b1d21;border:1px solid var(--line);padding:12px 20px;border-radius:999px;opacity:0;transition:.25s;pointer-events:none;font-size:15px;max-width:90vw;z-index:60}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#saver{position:fixed;inset:0;background:#000;z-index:50}
+#saverClock{position:absolute;font-size:96px;font-weight:300;color:#3a3a3a;letter-spacing:-.04em;font-variant-numeric:tabular-nums;transition:left 2s,top 2s}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;z-index:40;padding:20px}
+.sheet[hidden],#saver[hidden]{display:none}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:26px;width:min(640px,100%);max-height:92vh;overflow:auto;user-select:text}
+.panel h3{margin:0 0 6px;font-size:24px;font-weight:500}
+label{display:block;font-size:14px;color:var(--mute);margin:14px 0 6px}
+input,textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:#08090a;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+textarea{min-height:120px;font-size:13px;font-family:ui-monospace,monospace}
+.icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px}
+.icbtn{height:52px;border-radius:12px;background:#08090a;border:1px solid var(--line);color:var(--ink);cursor:pointer;display:grid;place-items:center}
+.icbtn svg{width:26px;height:26px}
+.icbtn.sel{border-color:var(--acc);color:var(--acc)}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg .btn.sel{border-color:var(--acc);color:var(--acc)}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;align-items:center}
+.row .sp{flex:1}
+.three{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+.hint{font-size:13px;color:var(--mute);margin:6px 0 0}
+#player{margin-top:24px}
+.pl{position:relative;overflow:hidden;display:grid;grid-template-columns:clamp(110px,12vw,140px) minmax(0,1fr);gap:20px;align-items:center;background:var(--tile);border:1px solid var(--line);border-radius:24px;padding:16px 18px}
+.pl::before{content:"";position:absolute;inset:-30%;background:var(--art,none) center/cover;filter:blur(50px) saturate(1.4);opacity:.45;z-index:0;transition:opacity .6s}
+.pl>*{position:relative;z-index:1}
+.art{aspect-ratio:1;border-radius:16px;background:#1a1b1f center/cover;box-shadow:0 18px 40px -18px #000;display:grid;place-items:center;color:var(--mute)}
+.art svg{width:44px;height:44px}
+.pt{font-size:24px;font-weight:500;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pa{color:#c3c6cc;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:6px;border-radius:3px;background:rgba(255,255,255,.14);margin-top:10px;cursor:pointer;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:#fff;width:0}
+.times{display:flex;justify-content:space-between;font-size:13px;color:var(--mute);margin-top:4px;font-variant-numeric:tabular-nums}
+.pctl{display:flex;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap}
+.cb{width:52px;height:52px;border-radius:50%;border:0;background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer}
+.cb svg{width:28px;height:28px}
+.cb.pp{width:64px;height:64px;background:#fff;color:#000}
+.cb.pp svg{width:30px;height:30px}
+.vol{display:flex;align-items:center;gap:8px;flex:1;min-width:140px;color:var(--mute)}
+.vol svg{width:22px;height:22px;flex:none}
+input[type=range]{-webkit-appearance:none;appearance:none;height:6px;padding:0;border:0;border-radius:3px;background:rgba(255,255,255,.18)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff}
+.devs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.devs .btn.sel{border-color:#1ed760;color:#1ed760}
+#pConnect{grid-column:1/-1}
+@media (max-width:820px){body{overflow:auto}#app{grid-template-columns:1fr;height:auto}.side{border-right:0;border-bottom:1px solid var(--line)}.wx{margin-top:24px}main{overflow:visible}.three{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside class="side">
+    <div class="greet" id="greet">Hallo</div>
+    <div class="clock" id="clock">--:--</div>
+    <div class="date" id="date"></div>
+    <div class="wx" id="wx"><div class="d">Wetter wird geladen …</div></div>
+    <div class="fc" id="fc"></div>
+    <div class="foot">
+      <button class="btn" id="fsBtn">Vollbild</button>
+      <button class="btn" id="editBtn">Bearbeiten</button>
+      <button class="btn" id="setBtn" hidden>Einstellungen</button>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<section id="player">
+  <h2>Musik</h2>
+  <div class="pl" id="pl">
+    <div class="art" id="pArt"></div>
+    <div>
+      <div class="pt" id="pTitle">Spotify</div>
+      <div class="pa" id="pArtist">Nicht verbunden</div>
+      <div class="bar" id="pBarWrap"><i id="pBar"></i></div>
+      <div class="times"><span id="pPos">0:00</span><span id="pDur">0:00</span></div>
+      <div class="pctl">
+        <button class="cb" id="pPrev" aria-label="Zurück"></button>
+        <button class="cb pp" id="pPlay" aria-label="Play/Pause"></button>
+        <button class="cb" id="pNext" aria-label="Weiter"></button>
+        <div class="vol"><span id="pVolIc"></span><input type="range" id="pVol" min="0" max="100" value="50" aria-label="Lautstärke"></div>
+        <button class="btn" id="pDev">Gerät</button>
+      </div>
+      <div class="devs" id="pDevs" hidden></div>
+    </div>
+    <div id="pConnect" hidden><p class="hint" id="pMsg"></p><div class="row" style="margin-top:8px"><button class="btn pri" id="pLogin">Mit Spotify verbinden</button></div></div>
+  </div>
+</section>
+
+<div id="toast" role="status"></div>
+<div id="saver" hidden><div id="saverClock"></div></div>
+
+<div class="sheet" id="editSheet" hidden>
+  <div class="panel">
+    <h3>Button bearbeiten</h3>
+    <label for="fLabel">Name</label>
+    <input id="fLabel" maxlength="40">
+    <label>Symbol</label>
+    <div class="icons" id="fIcons"></div>
+    <label>Art</label>
+    <div class="seg" id="fType">
+      <button type="button" class="btn" data-type="action">Aktion (einmal auslösen)</button>
+      <button type="button" class="btn" data-type="toggle">Ein / Aus</button>
+      <button type="button" class="btn" data-type="color">Farblicht</button>
+    </div>
+    <label for="fUrl" id="lblUrl">URL</label>
+    <input id="fUrl" inputmode="url" placeholder="https://www.virtualsmarthome.xyz/url_routine_trigger/…">
+    <div id="rowOff">
+      <label for="fUrlOff">URL zum Ausschalten</label>
+      <input id="fUrlOff" inputmode="url" placeholder="leer lassen = gleiche URL wie oben">
+    </div>
+    <div id="rowCol">
+      <label>Farben – nur Farben mit URL erscheinen auf dem Panel</label>
+      <div id="fColors"></div>
+    </div>
+    <div id="rowAcc">
+      <label>Kachelfarbe (für Stimmungen)</label>
+      <div class="seg" id="fAcc"></div>
+    </div>
+    <p class="hint">Jede URL löst eine Alexa-Routine aus (URL Routine Trigger).</p>
+    <div class="row">
+      <button class="btn" id="fLeft">← Nach vorn</button>
+      <button class="btn" id="fRight">Nach hinten →</button>
+      <button class="btn" id="fTest">Testen</button>
+    </div>
+    <div class="row">
+      <button class="btn danger" id="fDel">Löschen</button>
+      <span class="sp"></span>
+      <button class="btn" id="fCancel">Abbrechen</button>
+      <button class="btn pri" id="fSave">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="colSheet" hidden>
+  <div class="panel">
+    <h3 id="cTitle">Licht</h3>
+    <div class="big2">
+      <button class="btn" id="cOn">An</button>
+      <button class="btn" id="cOff">Aus</button>
+    </div>
+    <div class="sw" id="cSw"></div>
+    <p class="hint" id="cHint"></p>
+    <div class="row"><span class="sp"></span><button class="btn" id="cClose">Schließen</button></div>
+  </div>
+</div>
+
+<div class="sheet" id="setSheet" hidden>
+  <div class="panel">
+    <h3>Einstellungen</h3>
+    <label for="sName">Dein Name (Begrüßung)</label>
+    <input id="sName" maxlength="30">
+    <label for="sLoc">Ort fürs Wetter</label>
+    <div class="three">
+      <input id="sLoc" placeholder="Ort">
+      <input id="sLat" inputmode="decimal" placeholder="Breite">
+      <input id="sLon" inputmode="decimal" placeholder="Länge">
+    </div>
+    <div class="row"><button class="btn" id="sFind">Ort suchen</button><span class="hint" id="sFindMsg"></span></div>
+    <label for="sSaver">Bildschirmschoner nach (Minuten, 0 = aus)</label>
+    <input id="sSaver" type="number" min="0" max="120">
+    <label for="sSpId">Spotify Client ID</label>
+    <input id="sSpId" autocomplete="off" spellcheck="false" placeholder="aus dem Spotify Developer Dashboard">
+    <p class="hint">Im Dashboard als Redirect URI eintragen: <span id="sRedir" style="user-select:all;color:var(--ink)"></span></p>
+    <div class="row"><button class="btn" id="sSpOut">Spotify abmelden</button></div>
+    <label for="sJson">Konfiguration sichern / übertragen</label>
+    <textarea id="sJson" spellcheck="false"></textarea>
+    <p class="hint">Kopieren, um alle Buttons samt URLs zu sichern. Zum Wiederherstellen einfügen und „Import übernehmen“ tippen.</p>
+    <div class="row">
+      <button class="btn" id="sCopy">Kopieren</button>
+      <button class="btn" id="sImport">Import übernehmen</button>
+      <button class="btn danger" id="sReset">Alles zurücksetzen</button>
+    </div>
+    <div class="row"><span class="sp"></span>
+      <button class="btn" id="sClose">Schließen</button>
+      <button class="btn pri" id="sSave">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<script>
+{
+const ICONS={
+  bulb:'<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/>',
+  strip:'<rect x="3" y="9" width="18" height="6" rx="2"/><path d="M7 12h.01M12 12h.01M17 12h.01"/>',
+  spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17v4M17 19h4"/>',
+  party:'<path d="M4 20l5-14 9 9z"/><path d="M14 4l1 2M20 6l-2 1M18 10h2"/>',
+  moon:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  power:'<path d="M12 3v8"/><path d="M6.4 7a8 8 0 1 0 11.2 0"/>',
+  plug:'<path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/>',
+  pc:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  music:'<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+  play:'<path d="M7 4l13 8-13 8z"/>',
+  stop:'<rect x="6" y="6" width="12" height="12" rx="2"/>',
+  voldn:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 12h4"/>',
+  volup:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11"/>',
+  disc:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3a9 9 0 0 1 9 9"/>',
+  tv:'<rect x="2" y="5" width="20" height="13" rx="2"/><path d="M8 21h8"/>',
+  prev:'<path d="M19 5L9 12l10 7z"/><path d="M5 5v14"/>',
+  next:'<path d="M5 5l10 7-10 7z"/><path d="M19 5v14"/>',
+  pause:'<path d="M8 5v14M16 5v14"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  wsun:'<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  wpart:'<path d="M8 3v1M3.5 5.5l.7.7M2 10h1M12.5 5.5l-.7.7"/><path d="M5.2 10.5a3 3 0 0 1 5.6-2.2"/><path d="M9 20h8a3.5 3.5 0 0 0 .4-7A5 5 0 0 0 8 13a3.5 3.5 0 0 0 1 7z"/>',
+  wcloud:'<path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9.5 4.3 4.3 0 0 0 7 18z"/>',
+  wfog:'<path d="M4 8h16M6 12h12M4 16h16M8 20h8"/>',
+  wrain:'<path d="M7 15h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 6.5 4.3 4.3 0 0 0 7 15z"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>',
+  wsnow:'<path d="M7 15h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 6.5 4.3 4.3 0 0 0 7 15z"/><path d="M8 19h.01M12 21h.01M16 19h.01"/>',
+  wstorm:'<path d="M7 15h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 6.5 4.3 4.3 0 0 0 7 15z"/><path d="M12 14l-2 4h4l-2 4"/>'
+};
+const TILE_ICONS=['bulb','strip','spark','party','moon','sun','power','plug','pc','tv','music','play','stop','voldn','volup','disc'];
+const svg=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]||ICONS.power}</svg>`;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+const COLORS=[
+  {k:'weiss',n:'Weiß',c:'#ffffff'},{k:'warm',n:'Warmweiß',c:'#ffcf8a'},{k:'rot',n:'Rot',c:'#ff3b30'},
+  {k:'orange',n:'Orange',c:'#ff9500'},{k:'gelb',n:'Gelb',c:'#ffd60a'},{k:'gruen',n:'Grün',c:'#34c759'},
+  {k:'tuerkis',n:'Türkis',c:'#30d5c8'},{k:'blau',n:'Blau',c:'#0a84ff'},{k:'lila',n:'Lila',c:'#bf5af2'},{k:'pink',n:'Pink',c:'#ff2d92'}];
+const colOf=k=>COLORS.find(x=>x.k===k);
+const DEFAULT={name:'Malte',saver:5,loc:{name:'Hannover',lat:52.37,lon:9.73},sections:[
+  {name:'Computer',items:[
+    {label:'Haupt-PC',icon:'pc',type:'toggle'},
+    {label:'PC 2',icon:'pc',type:'toggle'}]},
+  {name:'Stimmungen',items:[
+    {label:'Guten Morgen',icon:'sun',type:'action',c:'#ffc46b'},
+    {label:'Hell',icon:'bulb',type:'action',c:'#fff4dc'},
+    {label:'Chill',icon:'moon',type:'action',c:'#ff9a3c'},
+    {label:'Gaming',icon:'pc',type:'action',c:'#7b5cff'},
+    {label:'Film',icon:'tv',type:'action',c:'#2f6bff'},
+    {label:'Fokus',icon:'pc',type:'action',c:'#dfe9ff'},
+    {label:'Party',icon:'party',type:'action',c:'#ff2d92'},
+    {label:'DJ\u2011Session',icon:'disc',type:'action',c:'#00e0c6'},
+    {label:'Lesen',icon:'bulb',type:'action',c:'#ffd9a0'},
+    {label:'Romantisch',icon:'spark',type:'action',c:'#ff4d6d'},
+    {label:'Gute Nacht',icon:'moon',type:'action',c:'#3a3f8f'},
+    {label:'Alles aus',icon:'power',type:'action',c:'#6b6f78'}]}
+]};
+
+const K_CFG='panel2.cfg', K_ST='panel2.states';
+let cfg=store.get(K_CFG,null)||clone(DEFAULT);
+let states=store.get(K_ST,{});
+const PLAYER=document.getElementById('player');
+const REDIR=location.origin+location.pathname;
+let editing=false, ed=null, ignoreUntil=0, colItem=null;
+const norm=()=>{cfg.sections.forEach(s=>s.items.forEach(i=>{i.id=i.id||uid();i.type=['toggle','color'].includes(i.type)?i.type:'action';i.url=i.url||'';i.urlOff=i.urlOff||'';i.colors=i.colors&&typeof i.colors==='object'?i.colors:{};i.c=/^#[0-9a-f]{6}$/i.test(i.c||'')?i.c:'';i.icon=ICONS[i.icon]?i.icon:'power';i.label=i.label||'Button'}))};
+const save=()=>store.set(K_CFG,cfg);
+const saveSt=()=>store.set(K_ST,states);
+const hasUrl=it=>!!(it.url||it.urlOff||Object.values(it.colors).some(Boolean));
+norm();
+
+/* ---------- Toast ---------- */
+let tt;
+const toast=msg=>{const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2600)};
+
+/* ---------- Buttons ---------- */
+const TYPE_N={action:'Aktion',toggle:'Ein / Aus',color:'Farblicht'};
+function tile(it,si,ii){
+  const on=it.type!=='action'&&!!states[it.id];
+  let cls='tile', style='', st;
+  if(it.type==='color'){
+    cls+=' col';const co=colOf(states[it.id+'_c']);
+    if(on){cls+=' on';style=`--c:${co?co.c:'#ffffff'}`}
+    st=on?`<span class="dot"></span>An${co?' · '+co.n:''}`:'Aus · Farbe wählen';
+  }else if(it.type==='toggle'){if(on)cls+=' on';st=on?'An':'Aus'}
+  else{st='Tippen';if(it.c){cls+=' mood';style=`--c:${it.c}`;if(states.mood===it.id){cls+=' act';st='Aktiv'}}}
+  if(editing){st=hasUrl(it)?TYPE_N[it.type]:'Keine URL';if(!hasUrl(it))cls+=' missing'}
+  return `<button class="${cls}" style="${style}" data-s="${si}" data-i="${ii}"><span class="ic">${svg(it.icon)}</span><span class="lb">${esc(it.label)}</span><span class="st">${st}</span></button>`;
+}
+function render(){
+  $('#main').innerHTML=cfg.sections.map((s,si)=>`<section><h2>${esc(s.name)}</h2><div class="grid">${s.items.map((it,ii)=>tile(it,si,ii)).join('')}${editing?`<button class="tile add" data-add="${si}"><span class="ic">${svg('plus')}</span><span class="lb">Button hinzufügen</span></button>`:''}</div></section>`).join('');
+  document.body.classList.toggle('editing',editing);
+  const m=cfg.sections.flatMap(s=>s.items).find(i=>i.id===states.mood);
+  document.body.style.setProperty('--mood',m&&m.c?m.c:'#3a4a66');
+  const secs=[...$('#main').querySelectorAll('section')],anchor=secs.find(x=>x.querySelector('.mood'))||secs[0];anchor?anchor.after(PLAYER):$('#main').prepend(PLAYER);
+  $('#editBtn').textContent=editing?'Fertig':'Bearbeiten';
+  $('#setBtn').hidden=!editing;
+}
+const fire=url=>/^https?:\/\//i.test(url)?fetch(url,{mode:'no-cors',cache:'no-store'}):Promise.reject(new Error('url'));
+const noUrl=l=>toast(`Für „${l}“ ist noch keine URL hinterlegt – unter Bearbeiten eintragen.`);
+const offline=()=>toast('Nicht erreichbar – ist das Tablet online?');
+function press(el,it){
+  el.classList.remove('fire');void el.offsetWidth;el.classList.add('fire');
+  if(it.type==='color'){openColor(it);return}
+  const toggle=it.type==='toggle', next=!states[it.id];
+  const url=toggle&&!next?(it.urlOff||it.url):it.url;
+  if(!url){noUrl(it.label);return}
+  fire(url).then(()=>{
+    if(toggle){states[it.id]=next;toast(`${it.label} ${next?'an':'aus'}`)}
+    else{if(it.c)states.mood=it.id;toast(it.c?`Stimmung „${it.label}“`:`${it.label} ausgelöst`)}
+    saveSt();render();
+  }).catch(offline);
+}
+
+/* ---------- Farbauswahl ---------- */
+function renderColor(){
+  const it=colItem, cur=states[it.id+'_c'], av=COLORS.filter(c=>it.colors[c.k]);
+  $('#cTitle').textContent=it.label;
+  $('#cSw').innerHTML=av.map(c=>`<button class="swb${states[it.id]&&cur===c.k?' sel':''}" style="--c:${c.c}" data-k="${c.k}"><i></i>${c.n}</button>`).join('');
+  $('#cHint').textContent=av.length?'':'Noch keine Farben hinterlegt – unter Bearbeiten Farb-URLs eintragen.';
+}
+function openColor(it){colItem=it;renderColor();show('#colSheet')}
+function colFire(url,apply,msg){if(!url){noUrl(colItem.label);return}fire(url).then(()=>{apply();saveSt();render();renderColor();toast(msg)}).catch(offline)}
+$('#cOn').addEventListener('click',()=>{const it=colItem;colFire(it.url,()=>{states[it.id]=true},`${it.label} an`)});
+$('#cOff').addEventListener('click',()=>{const it=colItem;colFire(it.urlOff||it.url,()=>{states[it.id]=false},`${it.label} aus`)});
+$('#cSw').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;const it=colItem,k=b.dataset.k;colFire(it.colors[k],()=>{states[it.id]=true;states[it.id+'_c']=k},`${it.label}: ${colOf(k).n}`)});
+$('#cClose').addEventListener('click',()=>hide('#colSheet'));
+$('#main').addEventListener('click',e=>{
+  if(Date.now()<ignoreUntil)return;
+  const add=e.target.closest('[data-add]');
+  if(add){const si=+add.dataset.add;cfg.sections[si].items.push({id:uid(),label:'Neuer Button',icon:'power',type:'action',url:'',urlOff:''});openEditor(si,cfg.sections[si].items.length-1,true);return}
+  const t=e.target.closest('.tile[data-s]');if(!t)return;
+  const si=+t.dataset.s, ii=+t.dataset.i;
+  editing?openEditor(si,ii,false):press(t,cfg.sections[si].items[ii]);
+});
+
+/* ---------- Editor ---------- */
+const show=id=>{$(id).hidden=false}, hide=id=>{$(id).hidden=true};
+const cur=()=>cfg.sections[ed.si].items[ed.ii];
+function renderIcons(){$('#fIcons').innerHTML=TILE_ICONS.map(n=>`<button type="button" class="icbtn${n===ed.icon?' sel':''}" data-ic="${n}" aria-label="${n}">${svg(n)}</button>`).join('')}
+const ACC=['','#fff4dc','#ff9a3c','#ff2d92','#ff4d6d','#7b5cff','#2f6bff','#00e0c6','#34c759','#3a3f8f','#6b6f78'];
+function renderAcc(){$('#fAcc').innerHTML=ACC.map(c=>`<button type="button" class="icbtn${c===ed.c?' sel':''}" data-acc="${c}" style="width:52px" aria-label="${c||'keine'}">${c?`<i style="width:24px;height:24px;border-radius:50%;background:${c}"></i>`:'–'}</button>`).join('')}
+function setType(t){ed.type=t;document.querySelectorAll('#fType .btn').forEach(b=>b.classList.toggle('sel',b.dataset.type===t));$('#rowOff').hidden=t==='action';$('#rowCol').hidden=t!=='color';$('#rowAcc').hidden=t!=='action';$('#lblUrl').textContent=t==='action'?'URL':'URL zum Einschalten'}
+function openEditor(si,ii,isNew){
+  const it=cfg.sections[si].items[ii];
+  ed={si,ii,isNew,icon:it.icon,type:it.type,c:it.c,delArm:false};
+  $('#fLabel').value=it.label;$('#fUrl').value=it.url;$('#fUrlOff').value=it.urlOff;
+  $('#fColors').innerHTML=COLORS.map(c=>`<div class="curl" style="--c:${c.c}"><i title="${c.n}"></i><input data-ck="${c.k}" inputmode="url" placeholder="${c.n} – URL"></div>`).join('');
+  document.querySelectorAll('#fColors input').forEach(i=>{i.value=it.colors[i.dataset.ck]||''});
+  renderAcc();
+  $('#fDel').textContent='Löschen';
+  renderIcons();setType(it.type);show('#editSheet');
+}
+function closeEditor(keep){
+  if(!keep&&ed&&ed.isNew)cfg.sections[ed.si].items.splice(ed.ii,1);
+  ed=null;hide('#editSheet');render();
+}
+$('#fIcons').addEventListener('click',e=>{const b=e.target.closest('[data-ic]');if(b){ed.icon=b.dataset.ic;renderIcons()}});
+$('#fType').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(b)setType(b.dataset.type)});
+$('#fAcc').addEventListener('click',e=>{const b=e.target.closest('[data-acc]');if(b){ed.c=b.dataset.acc;renderAcc()}});
+$('#fSave').addEventListener('click',()=>{const it=cur();it.label=$('#fLabel').value.trim()||'Button';it.icon=ed.icon;it.type=ed.type;it.c=ed.c||'';it.url=$('#fUrl').value.trim();it.urlOff=$('#fUrlOff').value.trim();
+  it.colors={};document.querySelectorAll('#fColors input').forEach(i=>{const v=i.value.trim();if(v)it.colors[i.dataset.ck]=v});
+  save();closeEditor(true);toast('Gespeichert')});
+$('#fCancel').addEventListener('click',()=>closeEditor(false));
+$('#fDel').addEventListener('click',()=>{
+  if(!ed.delArm){ed.delArm=true;$('#fDel').textContent='Wirklich löschen?';return}
+  const it=cur();delete states[it.id];cfg.sections[ed.si].items.splice(ed.ii,1);save();saveSt();ed=null;hide('#editSheet');render();toast('Button gelöscht');
+});
+const move=d=>{const arr=cfg.sections[ed.si].items, j=ed.ii+d;if(j<0||j>=arr.length)return;[arr[ed.ii],arr[j]]=[arr[j],arr[ed.ii]];ed.ii=j;save();render();toast('Verschoben')};
+$('#fLeft').addEventListener('click',()=>move(-1));
+$('#fRight').addEventListener('click',()=>move(1));
+$('#fTest').addEventListener('click',()=>{const u=$('#fUrl').value.trim();if(!u){toast('Erst eine URL eintragen');return}fire(u).then(()=>toast('Test gesendet – hat Alexa reagiert?')).catch(()=>toast('URL nicht erreichbar oder ungültig'))});
+
+/* ---------- Einstellungen ---------- */
+function openSettings(){
+  $('#sName').value=cfg.name||'';$('#sLoc').value=cfg.loc.name;$('#sLat').value=cfg.loc.lat;$('#sLon').value=cfg.loc.lon;
+  $('#sSaver').value=cfg.saver;$('#sSpId').value=cfg.spotifyId||'';$('#sRedir').textContent=REDIR;$('#sJson').value=JSON.stringify(cfg,null,1);$('#sFindMsg').textContent='';
+  $('#sReset').textContent='Alles zurücksetzen';$('#sReset').dataset.arm='';
+  show('#setSheet');
+}
+$('#setBtn').addEventListener('click',openSettings);
+$('#sClose').addEventListener('click',()=>hide('#setSheet'));
+$('#sSave').addEventListener('click',()=>{
+  cfg.name=$('#sName').value.trim();
+  const lat=parseFloat(String($('#sLat').value).replace(',','.')), lon=parseFloat(String($('#sLon').value).replace(',','.'));
+  cfg.loc={name:$('#sLoc').value.trim()||'Wetter',lat:isFinite(lat)?lat:cfg.loc.lat,lon:isFinite(lon)?lon:cfg.loc.lon};
+  cfg.saver=Math.max(0,parseInt($('#sSaver').value,10)||0);
+  cfg.spotifyId=$('#sSpId').value.trim();spUpdate();
+  save();hide('#setSheet');tick();loadWeather();toast('Einstellungen gespeichert');
+});
+$('#sFind').addEventListener('click',()=>{
+  const q=$('#sLoc').value.trim();if(!q)return;$('#sFindMsg').textContent='Suche …';
+  fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=de&name='+encodeURIComponent(q)).then(r=>r.json()).then(d=>{
+    const r=d.results&&d.results[0];if(!r){$('#sFindMsg').textContent='Nichts gefunden';return}
+    $('#sLoc').value=r.name;$('#sLat').value=r.latitude.toFixed(3);$('#sLon').value=r.longitude.toFixed(3);
+    $('#sFindMsg').textContent=[r.name,r.admin1,r.country].filter(Boolean).join(', ');
+  }).catch(()=>{$('#sFindMsg').textContent='Suche nicht möglich'});
+});
+$('#sCopy').addEventListener('click',()=>{const t=$('#sJson');try{navigator.clipboard.writeText(t.value).then(()=>toast('Kopiert'),()=>{t.select();toast('Text markiert – jetzt kopieren')})}catch(e){t.select();toast('Text markiert – jetzt kopieren')}});
+$('#sImport').addEventListener('click',()=>{
+  try{const c=JSON.parse($('#sJson').value);if(!c||!Array.isArray(c.sections))throw 0;
+    cfg=Object.assign(clone(DEFAULT),c);cfg.loc=Object.assign(clone(DEFAULT.loc),c.loc||{});norm();save();render();loadWeather();hide('#setSheet');toast('Konfiguration übernommen')}
+  catch(e){toast('Das sieht nicht nach einer gültigen Konfiguration aus')}
+});
+$('#sReset').addEventListener('click',e=>{
+  const b=e.currentTarget;if(!b.dataset.arm){b.dataset.arm='1';b.textContent='Wirklich alles zurücksetzen?';return}
+  cfg=clone(DEFAULT);norm();states={};save();saveSt();render();loadWeather();hide('#setSheet');toast('Zurückgesetzt');
+});
+document.querySelectorAll('.sheet').forEach(s=>s.addEventListener('click',e=>{if(e.target===s){s.id==='editSheet'?closeEditor(false):hide('#'+s.id)}}));
+
+$('#editBtn').addEventListener('click',()=>{editing=!editing;render()});
+$('#fsBtn').addEventListener('click',()=>{const d=document;try{(d.fullscreenElement?d.exitFullscreen():d.documentElement.requestFullscreen()).catch(()=>{})}catch(e){}});
+
+/* ---------- Uhr ---------- */
+const pad=n=>String(n).padStart(2,'0');
+function tick(){
+  const d=new Date(), h=d.getHours(), t=`${pad(h)}:${pad(d.getMinutes())}`;
+  $('#clock').textContent=t;$('#saverClock').textContent=t;
+  $('#date').textContent=d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  const g=h<5?'Gute Nacht':h<11?'Guten Morgen':h<18?'Hallo':h<22?'Guten Abend':'Gute Nacht';
+  $('#greet').textContent=cfg.name?`${g}, ${cfg.name}`:g;
+}
+
+/* ---------- Wetter (Open-Meteo, ohne API-Key) ---------- */
+function wmo(c,day){
+  if(c===0)return[day?'wsun':'moon','Klar'];
+  if(c<=2)return[day?'wpart':'moon','Leicht bewölkt'];
+  if(c===3)return['wcloud','Bewölkt'];
+  if(c===45||c===48)return['wfog','Nebel'];
+  if(c>=51&&c<=57)return['wrain','Nieselregen'];
+  if(c>=61&&c<=67)return['wrain','Regen'];
+  if(c>=71&&c<=77)return['wsnow','Schnee'];
+  if(c>=80&&c<=82)return['wrain','Schauer'];
+  if(c===85||c===86)return['wsnow','Schneeschauer'];
+  if(c>=95)return['wstorm','Gewitter'];
+  return['wcloud','–'];
+}
+function loadWeather(){
+  const {lat,lon,name}=cfg.loc;
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5`;
+  fetch(u).then(r=>r.json()).then(d=>{
+    const c=d.current, [ic,txt]=wmo(c.weather_code,c.is_day);
+    $('#wx').innerHTML=`<div class="big">${svg(ic)}</div><div><div class="t">${Math.round(c.temperature_2m)}°</div><div class="d">${esc(txt)} · ${esc(name)}<br>gefühlt ${Math.round(c.apparent_temperature)}° · Wind ${Math.round(c.wind_speed_10m)} km/h</div></div>`;
+    const dl=d.daily;
+    $('#fc').innerHTML=dl.time.map((t,i)=>{const lab=i===0?'Heute':new Date(t+'T12:00').toLocaleDateString('de-DE',{weekday:'short'}).replace('.','');const rain=dl.precipitation_probability_max[i];
+      return `<div>${esc(lab)}${svg(wmo(dl.weather_code[i],1)[0])}<b>${Math.round(dl.temperature_2m_max[i])}°</b> ${Math.round(dl.temperature_2m_min[i])}°${rain!=null&&rain>=30?`<br>${rain}% Regen`:''}</div>`}).join('');
+  }).catch(()=>{$('#wx').innerHTML='<div class="d">Wetter gerade nicht verfügbar</div>'});
+}
+
+/* ---------- Bildschirmschoner (gegen Einbrennen) ---------- */
+let last=Date.now();
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{last=Date.now()},true));
+const saverMove=()=>{const c=$('#saverClock');c.style.left=Math.round(Math.random()*Math.max(0,innerWidth-c.offsetWidth))+'px';c.style.top=Math.round(Math.random()*Math.max(0,innerHeight-c.offsetHeight))+'px'};
+$('#saver').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();hide('#saver');ignoreUntil=Date.now()+500});
+setInterval(()=>{
+  const sv=$('#saver');
+  if(sv.hidden&&cfg.saver>0&&!editing&&$('#editSheet').hidden&&$('#setSheet').hidden&&$('#colSheet').hidden&&Date.now()-last>cfg.saver*60000){show('#saver');saverMove()}
+  else if(!sv.hidden)saverMove();
+},20000);
+
+/* ---------- Bildschirm wach halten ---------- */
+const lock=()=>{try{if('wakeLock' in navigator&&document.visibilityState==='visible')navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}};
+document.addEventListener('visibilitychange',lock);
+document.addEventListener('pointerdown',lock,{once:true});
+
+
+/* ---------- Spotify (Web API, PKCE – nur über https) ---------- */
+const SP_SCOPE='user-read-playback-state user-modify-playback-state user-read-currently-playing';
+let spTok=store.get('panel2.sp',null), sp={}, spLocal=0, spT=0, volDrag=false;
+const fmt=ms=>{ms=Math.max(0,ms||0);const m=Math.floor(ms/60000),s=Math.floor(ms/1000)%60;return m+':'+pad(s)};
+const b64u=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const secure=()=>location.protocol==='https:'||['127.0.0.1','localhost'].includes(location.hostname);
+async function spLogin(){
+  if(!cfg.spotifyId){toast('Erst die Client ID in den Einstellungen eintragen');return}
+  const v=b64u(crypto.getRandomValues(new Uint8Array(48)));store.set('panel2.spv',v);
+  const ch=b64u(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)));
+  location.href='https://accounts.spotify.com/authorize?'+new URLSearchParams({response_type:'code',client_id:cfg.spotifyId,scope:SP_SCOPE,code_challenge_method:'S256',code_challenge:ch,redirect_uri:REDIR});
+}
+async function spToken(params){
+  const r=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(Object.assign({client_id:cfg.spotifyId},params))});
+  if(!r.ok)throw new Error('token');
+  const d=await r.json();spTok={access:d.access_token,refresh:d.refresh_token||(spTok&&spTok.refresh),exp:Date.now()+(d.expires_in-60)*1000};store.set('panel2.sp',spTok);
+}
+async function spApi(path,method='GET',body,retry=true){
+  if(!spTok)throw new Error('auth');
+  if(Date.now()>spTok.exp)await spToken({grant_type:'refresh_token',refresh_token:spTok.refresh});
+  const r=await fetch('https://api.spotify.com/v1'+path,{method,headers:Object.assign({Authorization:'Bearer '+spTok.access},body?{'Content-Type':'application/json'}:{}),body:body?JSON.stringify(body):undefined});
+  if(r.status===401&&retry){spTok.exp=0;return spApi(path,method,body,false)}
+  if(r.status===204||r.status===202)return null;
+  if(!r.ok)throw new Error(r.status===403?'premium':r.status===404?'nodevice':'api');
+  const t=await r.text();return t?JSON.parse(t):null;
+}
+function spMsg(m,btn){$('#pConnect').hidden=false;$('#pMsg').textContent=m;$('#pLogin').hidden=!btn}
+function spUpdate(){
+  $('#pConnect').hidden=true;
+  if(!secure()){spMsg('Spotify funktioniert nur, wenn die Seite über https läuft (z. B. GitHub Pages) – nicht als lokale Datei.',false);return}
+  if(!cfg.spotifyId){spMsg('Trage unter Bearbeiten → Einstellungen deine Spotify Client ID ein.',false);return}
+  if(!spTok){spMsg('Einmal mit deinem Spotify-Konto verbinden, dann bleibt das Panel angemeldet.',true);return}
+  spPoll();
+}
+function spShow(){
+  const it=sp.item, playing=!!sp.is_playing;
+  $('#pPlay').innerHTML=svg(playing?'pause':'play');
+  if(!it){$('#pTitle').textContent='Gerade läuft nichts';$('#pArtist').textContent='Starte Musik in Spotify oder per Alexa';$('#pArt').style.backgroundImage='';$('#pArt').innerHTML=svg('music');PLAYER.querySelector('.pl').style.removeProperty('--art');$('#pBar').style.width='0';$('#pPos').textContent='0:00';$('#pDur').textContent='0:00';return}
+  $('#pTitle').textContent=it.name||'';
+  $('#pArtist').textContent=(it.artists||[]).map(a=>a.name).join(', ')+(sp.device?' · '+sp.device.name:'');
+  const img=((it.album&&it.album.images)||[])[0];
+  if(img&&/^https:\/\/[\w.-]+\.(scdn\.co|spotifycdn\.com)\//.test(img.url)){const u=`url("${img.url.replace(/["\\]/g,'')}")`;$('#pArt').innerHTML='';$('#pArt').style.backgroundImage=u;PLAYER.querySelector('.pl').style.setProperty('--art',u)}
+  if(!volDrag&&sp.device&&sp.device.volume_percent!=null)$('#pVol').value=sp.device.volume_percent;
+  spProg();
+}
+function spProg(){
+  const it=sp.item;if(!it)return;
+  const pos=Math.min(it.duration_ms,(sp.progress_ms||0)+(sp.is_playing?Date.now()-spLocal:0));
+  $('#pBar').style.width=(pos/it.duration_ms*100)+'%';$('#pPos').textContent=fmt(pos);$('#pDur').textContent=fmt(it.duration_ms);
+}
+async function spPoll(){
+  if(!spTok||!secure())return;
+  try{const d=await spApi('/me/player');sp=d||{};spLocal=Date.now();$('#pConnect').hidden=true;spShow()}
+  catch(e){if(e.message==='token'||e.message==='auth'){spTok=null;store.set('panel2.sp',null);spMsg('Anmeldung abgelaufen – bitte neu verbinden.',true)}}
+}
+const spDo=(path,method,body,after)=>spApi(path,method,body).then(()=>{after&&after();setTimeout(spPoll,400)}).catch(e=>toast(e.message==='premium'?'Steuern geht nur mit Spotify Premium':e.message==='nodevice'?'Kein aktives Gerät – unter „Gerät“ eins wählen':'Spotify reagiert nicht'));
+$('#pPrev').innerHTML=svg('prev');$('#pNext').innerHTML=svg('next');$('#pPlay').innerHTML=svg('play');$('#pVolIc').innerHTML=svg('volup');
+$('#pPlay').addEventListener('click',()=>{const pl=!!sp.is_playing;spDo('/me/player/'+(pl?'pause':'play'),'PUT',null,()=>{sp.progress_ms=(sp.progress_ms||0)+(pl?Date.now()-spLocal:0);spLocal=Date.now();sp.is_playing=!pl;spShow()})});
+$('#pNext').addEventListener('click',()=>spDo('/me/player/next','POST'));
+$('#pPrev').addEventListener('click',()=>spDo('/me/player/previous','POST'));
+$('#pVol').addEventListener('input',()=>{volDrag=true});
+$('#pVol').addEventListener('change',e=>{volDrag=false;spDo('/me/player/volume?volume_percent='+(+e.target.value),'PUT')});
+$('#pBarWrap').addEventListener('click',e=>{if(!sp.item)return;const r=e.currentTarget.getBoundingClientRect(),ms=Math.round((e.clientX-r.left)/r.width*sp.item.duration_ms);spDo('/me/player/seek?position_ms='+ms,'PUT',null,()=>{sp.progress_ms=ms;spLocal=Date.now();spProg()})});
+$('#pDev').addEventListener('click',async()=>{
+  const box=$('#pDevs');if(!box.hidden){box.hidden=true;return}
+  try{const d=await spApi('/me/player/devices'),list=(d&&d.devices)||[];
+    box.innerHTML=list.length?list.map(x=>`<button class="btn${x.is_active?' sel':''}" data-dev="${esc(x.id)}">${esc(x.name)}</button>`).join(''):'<span class="hint">Keine Geräte gefunden – Spotify-App oder Echo einmal öffnen bzw. ansprechen.</span>';box.hidden=false}
+  catch(e){toast('Geräte konnten nicht geladen werden')}
+});
+$('#pDevs').addEventListener('click',e=>{const b=e.target.closest('[data-dev]');if(b)spDo('/me/player','PUT',{device_ids:[b.dataset.dev],play:true},()=>{$('#pDevs').hidden=true;toast('Wiedergabe auf '+b.textContent)})});
+$('#pLogin').addEventListener('click',()=>{spLogin().catch(()=>toast('Anmeldung konnte nicht gestartet werden'))});
+$('#sSpOut').addEventListener('click',()=>{spTok=null;store.set('panel2.sp',null);sp={};spShow();spUpdate();toast('Spotify abgemeldet')});
+(async()=>{
+  const q=new URLSearchParams(location.search), code=q.get('code');
+  if(code&&cfg.spotifyId){try{await spToken({grant_type:'authorization_code',code,redirect_uri:REDIR,code_verifier:store.get('panel2.spv','')});toast('Spotify verbunden')}catch(e){toast('Spotify-Anmeldung fehlgeschlagen')}
+    history.replaceState(null,'',REDIR)}
+  spUpdate();
+})();
+setInterval(()=>{if($('#saver').hidden)spPoll()},4000);
+setInterval(spProg,1000);
+
+render();tick();loadWeather();
+setInterval(tick,1000);
+setInterval(loadWeather,15*60000);
+}
+</script>
+</body>
+</html>
